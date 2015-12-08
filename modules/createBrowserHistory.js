@@ -4,6 +4,7 @@ import { canUseDOM } from './ExecutionEnvironment'
 import { addEventListener, removeEventListener, getWindowPath, supportsHistory } from './DOMUtils'
 import { saveState, readState } from './DOMStateStorage'
 import createDOMHistory from './createDOMHistory'
+import parsePath from './parsePath'
 
 /**
  * Creates and returns a history object that uses HTML5's history API
@@ -20,14 +21,14 @@ function createBrowserHistory(options={}) {
     'Browser history needs a DOM'
   )
 
-  let { forceRefresh } = options
-  let isSupported = supportsHistory()
-  let useRefresh = !isSupported || forceRefresh
+  const { forceRefresh, ...historyOptions } = options
+  const isSupported = supportsHistory()
+  const useRefresh = !isSupported || forceRefresh
 
   function getCurrentLocation(historyState) {
     historyState = historyState || window.history.state || {}
 
-    let path = getWindowPath()
+    const path = getWindowPath()
     let { key } = historyState
 
     let state
@@ -41,7 +42,9 @@ function createBrowserHistory(options={}) {
         window.history.replaceState({ ...historyState, key }, null, path)
     }
 
-    return history.createLocation(path, state, undefined, key)
+    const location = parsePath(path)
+
+    return history.createLocation({ ...location, state }, undefined, key)
   }
 
   function startPopStateListener({ transitionTo }) {
@@ -91,11 +94,10 @@ function createBrowserHistory(options={}) {
     }
   }
 
-  let history = createDOMHistory({
-    ...options,
+  const history = createDOMHistory({
+    ...historyOptions,
     getCurrentLocation,
-    finishTransition,
-    saveState
+    finishTransition
   })
 
   let listenerCount = 0, stopPopStateListener
@@ -128,28 +130,10 @@ function createBrowserHistory(options={}) {
     }
   }
 
-  // deprecated
-  function registerTransitionHook(hook) {
-    if (++listenerCount === 1)
-      stopPopStateListener = startPopStateListener(history)
-
-    history.registerTransitionHook(hook)
-  }
-
-  // deprecated
-  function unregisterTransitionHook(hook) {
-    history.unregisterTransitionHook(hook)
-
-    if (--listenerCount === 0)
-      stopPopStateListener()
-  }
-
   return {
     ...history,
     listenBefore,
-    listen,
-    registerTransitionHook,
-    unregisterTransitionHook
+    listen
   }
 }
 

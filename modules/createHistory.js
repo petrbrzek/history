@@ -1,10 +1,8 @@
 import deepEqual from 'deep-equal'
 import { loopAsync } from './AsyncUtils'
 import { PUSH, REPLACE, POP } from './Actions'
-import _createLocation from './createLocation'
-import parsePath from './parsePath'
 import runTransitionHook from './runTransitionHook'
-import deprecate from './deprecate'
+import _createLocation from './createLocation'
 
 function createRandomKey(length) {
   return Math.random().toString(36).substr(2, length)
@@ -21,7 +19,7 @@ function locationsAreEqual(a, b) {
 const DefaultKeyLength = 6
 
 function createHistory(options={}) {
-  let { getCurrentLocation, finishTransition, saveState, go, keyLength, getUserConfirmation } = options
+  let { getCurrentLocation, finishTransition, go, keyLength, getUserConfirmation } = options
 
   if (typeof keyLength !== 'number')
     keyLength = DefaultKeyLength
@@ -127,8 +125,8 @@ function createHistory(options={}) {
         if (finishTransition(nextLocation) !== false)
           updateLocation(nextLocation)
       } else if (location && nextLocation.action === POP) {
-        let prevIndex = allKeys.indexOf(location.key)
-        let nextIndex = allKeys.indexOf(nextLocation.key)
+        const prevIndex = allKeys.indexOf(location.key)
+        const nextIndex = allKeys.indexOf(nextLocation.key)
 
         if (prevIndex !== -1 && nextIndex !== -1)
           go(prevIndex - nextIndex) // Restore the URL.
@@ -138,13 +136,13 @@ function createHistory(options={}) {
 
   function push(location) {
     transitionTo(
-      createLocation(location, null, PUSH, createKey())
+      createLocation(location, PUSH, createKey())
     )
   }
 
   function replace(location) {
     transitionTo(
-      createLocation(location, null, REPLACE, createKey())
+      createLocation(location, REPLACE, createKey())
     )
   }
 
@@ -165,7 +163,6 @@ function createHistory(options={}) {
       return location
 
     const { pathname, search, hash } = location
-
     let result = pathname
 
     if (search)
@@ -181,50 +178,8 @@ function createHistory(options={}) {
     return createPath(location)
   }
 
-  function createLocation(path, state, action, key=createKey()) {
-    return _createLocation(path, state, action, key)
-  }
-
-  // deprecated
-  function setState(state) {
-    if (location) {
-      updateLocationState(location, state)
-      updateLocation(location)
-    } else {
-      updateLocationState(getCurrentLocation(), state)
-    }
-  }
-
-  function updateLocationState(location, state) {
-    location.state = { ...location.state, ...state }
-    saveState(location.key, location.state)
-  }
-
-  // deprecated
-  function registerTransitionHook(hook) {
-    if (transitionHooks.indexOf(hook) === -1)
-      transitionHooks.push(hook)
-  }
-
-  // deprecated
-  function unregisterTransitionHook(hook) {
-    transitionHooks = transitionHooks.filter(item => item !== hook)
-  }
-
-  // deprecated
-  function pushState(state, path) {
-    if (typeof path === 'string')
-      path = parsePath(path)
-
-    push({ state, ...path })
-  }
-
-  // deprecated
-  function replaceState(state, path) {
-    if (typeof path === 'string')
-      path = parsePath(path)
-
-    replace({ state, ...path })
+  function createLocation(location, action, key=createKey()) {
+    return _createLocation(location, action, key)
   }
 
   return {
@@ -239,28 +194,7 @@ function createHistory(options={}) {
     createKey,
     createPath,
     createHref,
-    createLocation,
-
-    setState: deprecate(
-      setState,
-      'setState is deprecated; use location.key to save state instead'
-    ),
-    registerTransitionHook: deprecate(
-      registerTransitionHook,
-      'registerTransitionHook is deprecated; use listenBefore instead'
-    ),
-    unregisterTransitionHook: deprecate(
-      unregisterTransitionHook,
-      'unregisterTransitionHook is deprecated; use the callback returned from listenBefore instead'
-    ),
-    pushState: deprecate(
-      pushState,
-      'pushState is deprecated; use push instead'
-    ),
-    replaceState: deprecate(
-      replaceState,
-      'replaceState is deprecated; use replace instead'
-    )
+    createLocation
   }
 }
 
